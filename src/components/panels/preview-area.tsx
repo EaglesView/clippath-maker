@@ -13,12 +13,34 @@ export function PreviewArea({ points, exportOptions }: PreviewAreaProps) {
   const clipPathValue = useMemo(() => {
     if (points.length < 3) return 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
 
-    const polygonPoints = points
-      .map(point => `${point.x.toFixed(1)}% ${point.y.toFixed(1)}%`)
-      .join(', ')
+    try {
+      // Use the proper clip path generator
+      const fullCSS = generateClipPath(points, exportOptions)
 
-    return `polygon(${polygonPoints})`
-  }, [points])
+      // Extract just the clip-path value from the CSS
+      const match = fullCSS.match(/clip-path:\s*([^;]+)/)
+      const extracted = match ? match[1] : null
+
+      if (extracted) {
+        return extracted
+      }
+
+      // Fallback: generate polygon directly
+      const polygonPoints = points
+        .map(point => `${point.x.toFixed(1)}% ${point.y.toFixed(1)}%`)
+        .join(', ')
+
+      return `polygon(${polygonPoints})`
+    } catch (error) {
+      console.error('Error in preview area:', error)
+      // Emergency fallback
+      const polygonPoints = points
+        .map(point => `${point.x.toFixed(1)}% ${point.y.toFixed(1)}%`)
+        .join(', ')
+
+      return `polygon(${polygonPoints})`
+    }
+  }, [points, exportOptions])
 
   return (
     <div className="space-y-4">
@@ -64,7 +86,13 @@ export function PreviewArea({ points, exportOptions }: PreviewAreaProps) {
 
       {/* Points info */}
       <div className="text-xs text-muted-foreground">
-        {points.length} point{points.length !== 1 ? 's' : ''} • {points.filter(p => p.type === 'smooth').length} curve{points.filter(p => p.type === 'smooth').length !== 1 ? 's' : ''}
+        {points.length} point{points.length !== 1 ? 's' : ''} • {points.filter(p => p.type === 'smooth' || p.type === 'asymmetric').length} curve{points.filter(p => p.type === 'smooth' || p.type === 'asymmetric').length !== 1 ? 's' : ''}
+      </div>
+
+      {/* Debug info */}
+      <div className="text-xs bg-muted p-2 rounded font-mono text-muted-foreground break-all">
+        <div className="font-semibold mb-1">Current clip-path:</div>
+        {clipPathValue}
       </div>
     </div>
   )

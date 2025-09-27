@@ -1,19 +1,19 @@
 'use client'
 
-import { useRef, useCallback, useMemo, MouseEvent } from 'react'
+import { useRef, useCallback, useMemo, useState, MouseEvent } from 'react'
 import { Point } from '@/types/clip-path'
-import { screenToCanvas, snapToGrid } from '@/lib/canvas-utils'
+import { screenToCanvas, snapToGrid, findClosestSegment } from '@/lib/canvas-utils'
 import { CanvasPoint } from './canvas-point'
 
 interface InteractiveCanvasProps {
   points: Point[]
   selectedPointId?: string
-  tool: 'select' | 'addPoint' | 'addCurve'
+  tool: 'select' | 'add'
   showGrid: boolean
   snapToGrid: boolean
   gridSize: number
   canvasSize: { width: number; height: number }
-  onAddPoint: (x: number, y: number) => void
+  onAddPoint: (x: number, y: number, insertIndex?: number) => void
   onUpdatePoint: (id: string, updates: Partial<Point>) => void
   onDeletePoint: (id: string) => void
   onSelectPoint: (id?: string) => void
@@ -33,6 +33,10 @@ export function InteractiveCanvas({
   onSelectPoint
 }: InteractiveCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
+  const [hoverPreview, setHoverPreview] = useState<{
+    point: { x: number; y: number }
+    segmentIndex: number
+  } | null>(null)
 
   const gridLines = useMemo(() => {
     if (!showGrid) return []
@@ -58,11 +62,42 @@ export function InteractiveCanvas({
     commands.push(`M ${firstPoint.x} ${firstPoint.y}`)
 
     for (let i = 1; i < points.length; i++) {
-      const point = points[i]
-      commands.push(`L ${point.x} ${point.y}`)
+      const currentPoint = points[i]
+      const prevPoint = points[i - 1]
+
+      // Check if we need to draw a curve (either point has control points)
+      const usesCurve =
+        (prevPoint.handleOut || prevPoint.controlPoint2) ||
+        (currentPoint.handleIn || currentPoint.controlPoint1)
+
+      if (usesCurve) {
+        // Get control points - use new handleIn/handleOut if available, fallback to legacy
+        const cp1 = prevPoint.handleOut || prevPoint.controlPoint2 || prevPoint
+        const cp2 = currentPoint.handleIn || currentPoint.controlPoint1 || currentPoint
+
+        // Proper SVG cubic bezier: C cp1x cp1y, cp2x cp2y, endx endy
+        commands.push(`C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${currentPoint.x} ${currentPoint.y}`)
+      } else {
+        // Use straight line
+        commands.push(`L ${currentPoint.x} ${currentPoint.y}`)
+      }
     }
 
-    commands.push('Z')
+    // Close the path - check if we need a curve from last point back to first
+    const lastPoint = points[points.length - 1]
+    const firstPointAgain = points[0]
+    const closingCurve =
+      (lastPoint.handleOut || lastPoint.controlPoint2) ||
+      (firstPointAgain.handleIn || firstPointAgain.controlPoint1)
+
+    if (closingCurve) {
+      const cp1 = lastPoint.handleOut || lastPoint.controlPoint2 || lastPoint
+      const cp2 = firstPointAgain.handleIn || firstPointAgain.controlPoint1 || firstPointAgain
+      commands.push(`C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${firstPointAgain.x} ${firstPointAgain.y}`)
+    } else {
+      commands.push('Z')
+    }
+
     return commands.join(' ')
   }, [points])
 
@@ -77,19 +112,47 @@ export function InteractiveCanvas({
       canvasSize
     )
 
-    const snappedCoords = snapToGrid(
-      canvasCoords.x,
-      canvasCoords.y,
-      gridSize,
-      snapEnabled
-    )
+    if (points.length < 2) {
+      // If we have fewer than 2 points, just add to the end
+      const snappedCoords = snapToGrid(
+        canvasCoords.x,
+        canvasCoords.y,
+        gridSize,
+        snapEnabled
+      )
+      const clampedX = Math.max(0, Math.min(100, snappedCoords.x))
+      const clampedY = Math.max(0, Math.min(100, snappedCoords.y))
+      onAddPoint(clampedX, clampedY)
+      return
+    }
 
-    // Clamp coordinates to canvas bounds
-    const clampedX = Math.max(0, Math.min(100, snappedCoords.x))
-    const clampedY = Math.max(0, Math.min(100, snappedCoords.y))
+    // Find the closest segment to insert the point
+    const closestSegment = findClosestSegment(canvasCoords, points)
 
-    onAddPoint(clampedX, clampedY)
-  }, [tool, canvasSize, gridSize, snapEnabled, onAddPoint])
+    if (closestSegment) {
+      const snappedCoords = snapToGrid(
+        closestSegment.insertionPoint.x,
+        closestSegment.insertionPoint.y,
+        gridSize,
+        snapEnabled
+      )
+      const clampedX = Math.max(0, Math.min(100, snappedCoords.x))
+      const clampedY = Math.max(0, Math.min(100, snappedCoords.y))
+
+      onAddPoint(clampedX, clampedY, closestSegment.insertIndex)
+    } else {
+      // Fallback: add to end
+      const snappedCoords = snapToGrid(
+        canvasCoords.x,
+        canvasCoords.y,
+        gridSize,
+        snapEnabled
+      )
+      const clampedX = Math.max(0, Math.min(100, snappedCoords.x))
+      const clampedY = Math.max(0, Math.min(100, snappedCoords.y))
+      onAddPoint(clampedX, clampedY)
+    }
+  }, [tool, canvasSize, gridSize, snapEnabled, points, onAddPoint])
 
   const handlePointUpdate = useCallback((id: string, x: number, y: number) => {
     const snappedCoords = snapToGrid(x, y, gridSize, snapEnabled)
@@ -99,6 +162,46 @@ export function InteractiveCanvas({
     onUpdatePoint(id, { x: clampedX, y: clampedY })
   }, [gridSize, snapEnabled, onUpdatePoint])
 
+  const handleCanvasMouseMove = useCallback((event: MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current || tool !== 'add' || points.length < 2) {
+      setHoverPreview(null)
+      return
+    }
+
+    const rect = svgRef.current.getBoundingClientRect()
+    const canvasCoords = screenToCanvas(
+      event.clientX,
+      event.clientY,
+      rect,
+      canvasSize
+    )
+
+    const closestSegment = findClosestSegment(canvasCoords, points)
+
+    if (closestSegment && closestSegment.insertionPoint) {
+      const snappedCoords = snapToGrid(
+        closestSegment.insertionPoint.x,
+        closestSegment.insertionPoint.y,
+        gridSize,
+        snapEnabled
+      )
+
+      setHoverPreview({
+        point: {
+          x: Math.max(0, Math.min(100, snappedCoords.x)),
+          y: Math.max(0, Math.min(100, snappedCoords.y))
+        },
+        segmentIndex: closestSegment.segmentIndex
+      })
+    } else {
+      setHoverPreview(null)
+    }
+  }, [tool, points, canvasSize, gridSize, snapEnabled])
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    setHoverPreview(null)
+  }, [])
+
   return (
     <div className="relative">
       <svg
@@ -106,6 +209,8 @@ export function InteractiveCanvas({
         viewBox="0 0 100 100"
         className="w-full h-96 border border-border rounded-md bg-card cursor-crosshair"
         onClick={handleCanvasClick}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseLeave={handleCanvasMouseLeave}
       >
         {/* Grid */}
         {gridLines.map((line, index) => (
@@ -133,22 +238,48 @@ export function InteractiveCanvas({
           />
         )}
 
-        {/* Connection lines */}
+        {/* Connection lines with curve visualization */}
         {points.length > 1 &&
           points.map((point, index) => {
             const nextPoint = points[(index + 1) % points.length]
-            return (
-              <line
-                key={`connection-${index}`}
-                x1={point.x}
-                y1={point.y}
-                x2={nextPoint.x}
-                y2={nextPoint.y}
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth="0.2"
-                opacity="0.6"
-              />
-            )
+
+            // Check if this segment uses curves
+            const usesCurve =
+              (point.handleOut || point.controlPoint2) ||
+              (nextPoint.handleIn || nextPoint.controlPoint1)
+
+            if (usesCurve) {
+              // Draw a subtle curve preview
+              const cp1 = point.handleOut || point.controlPoint2 || point
+              const cp2 = nextPoint.handleIn || nextPoint.controlPoint1 || nextPoint
+
+              return (
+                <path
+                  key={`connection-${index}`}
+                  d={`M ${point.x} ${point.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${nextPoint.x} ${nextPoint.y}`}
+                  fill="none"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth="0.15"
+                  opacity="0.4"
+                  strokeDasharray="0.5 0.5"
+                  className="pointer-events-none"
+                />
+              )
+            } else {
+              // Draw straight line
+              return (
+                <line
+                  key={`connection-${index}`}
+                  x1={point.x}
+                  y1={point.y}
+                  x2={nextPoint.x}
+                  y2={nextPoint.y}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth="0.2"
+                  opacity="0.6"
+                />
+              )
+            }
           })}
 
         {/* Points */}
@@ -161,17 +292,43 @@ export function InteractiveCanvas({
             canvasSize={canvasSize}
             tool={tool}
             onUpdate={handlePointUpdate}
+            onUpdatePoint={onUpdatePoint}
             onDelete={() => onDeletePoint(point.id)}
             onSelect={() => onSelectPoint(point.id)}
           />
         ))}
+
+        {/* Hover preview point */}
+        {hoverPreview && (
+          <g>
+            <circle
+              cx={hoverPreview.point.x}
+              cy={hoverPreview.point.y}
+              r={1.0}
+              fill="hsl(var(--primary))"
+              fillOpacity="0.5"
+              stroke="hsl(var(--primary))"
+              strokeWidth="0.2"
+              className="pointer-events-none animate-pulse"
+            />
+            <text
+              x={hoverPreview.point.x}
+              y={hoverPreview.point.y - 3}
+              textAnchor="middle"
+              fontSize="1.5"
+              fill="hsl(var(--primary))"
+              className="pointer-events-none select-none font-semibold"
+            >
+              +
+            </text>
+          </g>
+        )}
       </svg>
 
       {/* Instructions */}
       <div className="mt-4 text-xs text-muted-foreground">
         {tool === 'select' && 'Click and drag points to move them. Press Delete to remove selected point.'}
-        {tool === 'addPoint' && 'Click anywhere on the canvas to add a corner point.'}
-        {tool === 'addCurve' && 'Click anywhere on the canvas to add a smooth curve point.'}
+        {tool === 'add' && 'Click anywhere along the path to add a point at that position.'}
       </div>
     </div>
   )

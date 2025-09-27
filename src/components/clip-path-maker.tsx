@@ -8,15 +8,16 @@ import { Separator } from '@/components/ui/separator'
 import { InteractiveCanvas } from '@/components/canvas/interactive-canvas'
 import { Toolbar } from '@/components/panels/toolbar'
 import { SettingsPanel } from '@/components/panels/settings-panel'
+import { PointProperties } from '@/components/panels/point-properties'
 import { PreviewArea } from '@/components/panels/preview-area'
 import { CodeOutput } from '@/components/panels/code-output'
 
 const initialState: ClipPathState = {
   points: [
-    { id: generateId(), x: 20, y: 20, type: 'corner' },
-    { id: generateId(), x: 80, y: 20, type: 'corner' },
-    { id: generateId(), x: 80, y: 80, type: 'corner' },
-    { id: generateId(), x: 20, y: 80, type: 'corner' }
+    { id: generateId(), x: 20, y: 20, type: 'flat' },
+    { id: generateId(), x: 80, y: 20, type: 'flat' },
+    { id: generateId(), x: 80, y: 80, type: 'flat' },
+    { id: generateId(), x: 20, y: 80, type: 'flat' }
   ],
   tool: 'select',
   showGrid: true,
@@ -37,19 +38,30 @@ export function ClipPathMaker() {
     setState(prev => ({ ...prev, ...updates }))
   }, [])
 
-  const addPoint = useCallback((x: number, y: number) => {
+  const addPoint = useCallback((x: number, y: number, insertIndex?: number) => {
     const newPoint: Point = {
       id: generateId(),
       x,
       y,
-      type: state.tool === 'addCurve' ? 'smooth' : 'corner'
+      type: 'flat' // All new points start as flat curves
     }
 
-    setState(prev => ({
-      ...prev,
-      points: [...prev.points, newPoint]
-    }))
-  }, [state.tool])
+    setState(prev => {
+      const points = [...prev.points]
+      if (insertIndex !== undefined) {
+        // Insert at specific position
+        points.splice(insertIndex, 0, newPoint)
+      } else {
+        // Add to end (fallback)
+        points.push(newPoint)
+      }
+
+      return {
+        ...prev,
+        points
+      }
+    })
+  }, [])
 
   const updatePoint = useCallback((id: string, updates: Partial<Point>) => {
     setState(prev => ({
@@ -114,6 +126,19 @@ export function ClipPathMaker() {
                   onShowGridChange={(showGrid) => updateState({ showGrid })}
                   onSnapToGridChange={(snapToGrid) => updateState({ snapToGrid })}
                   onGridSizeChange={(gridSize) => updateState({ gridSize })}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Point Properties</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PointProperties
+                  selectedPoint={state.points.find(p => p.id === state.selectedPointId)}
+                  onUpdatePoint={updatePoint}
+                  onDeletePoint={deletePoint}
                 />
               </CardContent>
             </Card>

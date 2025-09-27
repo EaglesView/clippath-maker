@@ -5,8 +5,8 @@ import { MousePointer, Plus, Spline, RotateCcw } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface ToolbarProps {
-  currentTool: 'select' | 'addPoint' | 'addCurve'
-  onToolChange: (tool: 'select' | 'addPoint' | 'addCurve') => void
+  currentTool: 'select' | 'add'
+  onToolChange: (tool: 'select' | 'add') => void
   onReset: () => void
 }
 
@@ -19,16 +19,10 @@ export function Toolbar({ currentTool, onToolChange, onReset }: ToolbarProps) {
       description: 'Select and move points'
     },
     {
-      id: 'addPoint' as const,
+      id: 'add' as const,
       icon: Plus,
       label: 'Add Point',
-      description: 'Add corner points'
-    },
-    {
-      id: 'addCurve' as const,
-      icon: Spline,
-      label: 'Add Curve',
-      description: 'Add smooth curve points'
+      description: 'Add points anywhere along the path'
     }
   ]
 
