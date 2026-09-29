@@ -1,4 +1,4 @@
-import { Point, CurvePoint, ExportFormat, ExportOptions, Shape } from '@/types/clip-path'
+import { Point, ExportOptions, Shape } from '@/types/clip-path'
 
 // New function that handles all shape types
 export function generateClipPathFromShape(shape: Shape, options: ExportOptions = {

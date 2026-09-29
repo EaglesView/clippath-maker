@@ -71,7 +71,7 @@ export function ControlHandle({
         y1={parentPoint.y}
         x2={controlPoint.x}
         y2={controlPoint.y}
-        stroke="hsl(var(--muted-foreground))"
+        stroke="var(--muted-foreground)"
         strokeWidth="0.1"
         strokeDasharray="0.5 0.5"
         opacity="0.7"
@@ -83,8 +83,8 @@ export function ControlHandle({
         cx={controlPoint.x}
         cy={controlPoint.y}
         r={0.8}
-        fill="hsl(var(--background))"
-        stroke={handleType === 'in' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+        fill="var(--background)"
+        stroke={handleType === 'in' ? 'var(--destructive)' : 'var(--primary)'}
         strokeWidth="0.2"
         className={`cursor-pointer transition-all ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
@@ -97,7 +97,7 @@ export function ControlHandle({
         cx={controlPoint.x}
         cy={controlPoint.y}
         r={0.2}
-        fill={handleType === 'in' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+        fill={handleType === 'in' ? 'var(--destructive)' : 'var(--primary)'}
         className="pointer-events-none"
       />
 
@@ -107,7 +107,7 @@ export function ControlHandle({
         y={controlPoint.y - 1.5}
         textAnchor="middle"
         fontSize="1"
-        fill={handleType === 'in' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+        fill={handleType === 'in' ? 'var(--destructive)' : 'var(--primary)'}
         className="pointer-events-none select-none font-bold"
       >
         {handleType === 'in' ? '←' : '→'}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clip Path Maker",
-  description: "Create custom CSS clip-path shapes with an interactive visual editor",
+  title: "Clip Path Maker — Visual CSS clip-path editor",
+  description:
+    "Draw polygons on an interactive canvas and export production-ready CSS clip-path, SVG, or JSON. Built with Next.js, TypeScript, and Tailwind CSS.",
+  keywords: ["clip-path", "CSS", "polygon", "SVG", "editor", "Next.js"],
+  authors: [{ name: "jim" }],
 };
 
 export default function RootLayout({
@@ -23,11 +27,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

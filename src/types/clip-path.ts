@@ -1,8 +1,10 @@
+export type PointType = 'flat' | 'smooth' | 'asymmetric'
+
 export interface Point {
   id: string
   x: number // 0-100 percentage
   y: number // 0-100 percentage
-  type: 'flat' | 'smooth' | 'asymmetric'
+  type: PointType
   // Incoming control point (affects curve TO this point)
   handleIn?: ControlPoint
   // Outgoing control point (affects curve FROM this point)
@@ -15,14 +17,6 @@ export interface Point {
 export interface ControlPoint {
   x: number
   y: number
-}
-
-export interface PathSegment {
-  point: Point
-  isStart?: boolean
-  isCurve?: boolean
-  controlPoint1?: ControlPoint
-  controlPoint2?: ControlPoint
 }
 
 export type ShapeMode = 'polygon' | 'circle' | 'ellipse' | 'inset'
@@ -57,19 +51,13 @@ export interface PolygonShape {
 export type Shape = CircleShape | EllipseShape | InsetShape | PolygonShape
 
 export interface ClipPathState {
-  shape: Shape
+  points: Point[]
   selectedPointId?: string
   tool: 'select' | 'add'
   showGrid: boolean
   snapToGrid: boolean
   gridSize: number
   canvasSize: { width: number; height: number }
-}
-
-export interface CanvasInteractionState {
-  isDragging: boolean
-  dragStartPos?: { x: number; y: number }
-  hoveredPointId?: string
 }
 
 export type ExportFormat = 'css' | 'svg' | 'json'

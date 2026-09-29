@@ -203,11 +203,11 @@ export function InteractiveCanvas({
   }, [])
 
   return (
-    <div className="relative">
+    <div className="relative h-full w-full">
       <svg
         ref={svgRef}
         viewBox="0 0 100 100"
-        className="w-full h-96 border border-border rounded-md bg-card cursor-crosshair"
+        className="h-full w-full rounded-xl border border-border bg-card text-muted-foreground shadow-sm cursor-crosshair"
         onClick={handleCanvasClick}
         onMouseMove={handleCanvasMouseMove}
         onMouseLeave={handleCanvasMouseLeave}
@@ -230,9 +230,9 @@ export function InteractiveCanvas({
         {points.length > 0 && (
           <path
             d={pathData}
-            fill="hsl(var(--primary))"
+            fill="var(--primary)"
             fillOpacity="0.2"
-            stroke="hsl(var(--primary))"
+            stroke="var(--primary)"
             strokeWidth="0.3"
             strokeDasharray="1 1"
           />
@@ -258,7 +258,7 @@ export function InteractiveCanvas({
                   key={`connection-${index}`}
                   d={`M ${point.x} ${point.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${nextPoint.x} ${nextPoint.y}`}
                   fill="none"
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="var(--muted-foreground)"
                   strokeWidth="0.15"
                   opacity="0.4"
                   strokeDasharray="0.5 0.5"
@@ -274,7 +274,7 @@ export function InteractiveCanvas({
                   y1={point.y}
                   x2={nextPoint.x}
                   y2={nextPoint.y}
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="var(--muted-foreground)"
                   strokeWidth="0.2"
                   opacity="0.6"
                 />
@@ -305,9 +305,9 @@ export function InteractiveCanvas({
               cx={hoverPreview.point.x}
               cy={hoverPreview.point.y}
               r={1.0}
-              fill="hsl(var(--primary))"
+              fill="var(--primary)"
               fillOpacity="0.5"
-              stroke="hsl(var(--primary))"
+              stroke="var(--primary)"
               strokeWidth="0.2"
               className="pointer-events-none animate-pulse"
             />
@@ -316,7 +316,7 @@ export function InteractiveCanvas({
               y={hoverPreview.point.y - 3}
               textAnchor="middle"
               fontSize="1.5"
-              fill="hsl(var(--primary))"
+              fill="var(--primary)"
               className="pointer-events-none select-none font-semibold"
             >
               +
@@ -325,10 +325,13 @@ export function InteractiveCanvas({
         )}
       </svg>
 
-      {/* Instructions */}
-      <div className="mt-4 text-xs text-muted-foreground">
-        {tool === 'select' && 'Click and drag points to move them. Press Delete to remove selected point.'}
-        {tool === 'add' && 'Click anywhere along the path to add a point at that position.'}
+      {/* Instructions overlay */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center px-4">
+        <p className="rounded-full border bg-background/80 px-3 py-1.5 text-center text-xs text-muted-foreground shadow-sm backdrop-blur">
+          {tool === 'select'
+            ? 'Drag points to move them. Press Delete to remove the selected point.'
+            : 'Click along the path to add a point at that position.'}
+        </p>
       </div>
     </div>
   )
