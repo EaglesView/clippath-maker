@@ -14,6 +14,8 @@ canvas and copy production-ready CSS, SVG, or JSON — no more hand-writing
 - **Multiple export formats** — CSS (`clip-path`), SVG path, or JSON.
 - **CSS options** — percentage or pixel units and an optional `-webkit-` prefix.
 - **One-click copy** to clipboard and a full ready-to-paste CSS snippet.
+- **Fullscreen, responsive layout** — dual sidebars on desktop, a two-tab bottom drawer on mobile.
+- **Light & dark themes** with system preference detection.
 
 ## Tech stack
 

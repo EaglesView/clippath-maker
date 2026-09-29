@@ -130,8 +130,8 @@ export function CanvasPoint({
         cx={point.x}
         cy={point.y}
         r={pointRadius}
-        fill={point.type !== 'flat' ? 'hsl(var(--primary))' : 'hsl(var(--background))'}
-        stroke={isSelected ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+        fill={point.type !== 'flat' ? 'var(--primary)' : 'var(--background)'}
+        stroke={isSelected ? 'var(--destructive)' : 'var(--primary)'}
         strokeWidth={strokeWidth}
         className={`cursor-pointer transition-all ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
@@ -145,7 +145,7 @@ export function CanvasPoint({
         y={point.y - 2.5}
         textAnchor="middle"
         fontSize="2"
-        fill="hsl(var(--muted-foreground))"
+        fill="var(--muted-foreground)"
         className="pointer-events-none select-none"
       >
         {index + 1}
@@ -158,7 +158,7 @@ export function CanvasPoint({
           cy={point.y}
           r={pointRadius + 0.5}
           fill="none"
-          stroke="hsl(var(--destructive))"
+          stroke="var(--destructive)"
           strokeWidth="0.2"
           strokeDasharray="0.5 0.5"
           className="animate-pulse"
@@ -171,7 +171,7 @@ export function CanvasPoint({
           cx={point.x}
           cy={point.y}
           r={0.4}
-          fill="hsl(var(--background))"
+          fill="var(--background)"
           className="pointer-events-none"
         />
       )}
@@ -181,7 +181,7 @@ export function CanvasPoint({
           y={point.y - 0.3}
           width={0.6}
           height={0.6}
-          fill="hsl(var(--background))"
+          fill="var(--background)"
           className="pointer-events-none"
         />
       )}
