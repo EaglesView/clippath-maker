@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clip Path Maker",
-  description: "Create custom CSS clip-path shapes with an interactive visual editor",
+  title: "Clip Path Maker — Visual CSS clip-path editor",
+  description:
+    "Draw polygons on an interactive canvas and export production-ready CSS clip-path, SVG, or JSON. Built with Next.js, TypeScript, and Tailwind CSS.",
+  keywords: ["clip-path", "CSS", "polygon", "SVG", "editor", "Next.js"],
+  authors: [{ name: "jim" }],
 };
 
 export default function RootLayout({

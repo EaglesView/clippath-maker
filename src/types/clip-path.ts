@@ -17,14 +17,6 @@ export interface ControlPoint {
   y: number
 }
 
-export interface PathSegment {
-  point: Point
-  isStart?: boolean
-  isCurve?: boolean
-  controlPoint1?: ControlPoint
-  controlPoint2?: ControlPoint
-}
-
 export type ShapeMode = 'polygon' | 'circle' | 'ellipse' | 'inset'
 
 export interface CircleShape {
@@ -57,19 +49,13 @@ export interface PolygonShape {
 export type Shape = CircleShape | EllipseShape | InsetShape | PolygonShape
 
 export interface ClipPathState {
-  shape: Shape
+  points: Point[]
   selectedPointId?: string
   tool: 'select' | 'add'
   showGrid: boolean
   snapToGrid: boolean
   gridSize: number
   canvasSize: { width: number; height: number }
-}
-
-export interface CanvasInteractionState {
-  isDragging: boolean
-  dragStartPos?: { x: number; y: number }
-  hoveredPointId?: string
 }
 
 export type ExportFormat = 'css' | 'svg' | 'json'

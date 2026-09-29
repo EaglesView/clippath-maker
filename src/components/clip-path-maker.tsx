@@ -1,105 +1,58 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { ClipPathState, Point, ExportOptions } from '@/types/clip-path'
-import { generateId } from '@/lib/canvas-utils'
+import { useState } from 'react'
+import { ExportOptions } from '@/types/clip-path'
+import { useClipPathEditor } from '@/hooks/use-clip-path-editor'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { InteractiveCanvas } from '@/components/canvas/interactive-canvas'
 import { Toolbar } from '@/components/panels/toolbar'
 import { SettingsPanel } from '@/components/panels/settings-panel'
 import { PointProperties } from '@/components/panels/point-properties'
 import { PreviewArea } from '@/components/panels/preview-area'
 import { CodeOutput } from '@/components/panels/code-output'
-
-const initialState: ClipPathState = {
-  points: [
-    { id: generateId(), x: 20, y: 20, type: 'flat' },
-    { id: generateId(), x: 80, y: 20, type: 'flat' },
-    { id: generateId(), x: 80, y: 80, type: 'flat' },
-    { id: generateId(), x: 20, y: 80, type: 'flat' }
-  ],
-  tool: 'select',
-  showGrid: true,
-  snapToGrid: true,
-  gridSize: 5,
-  canvasSize: { width: 400, height: 400 }
-}
+import { Shapes } from 'lucide-react'
 
 export function ClipPathMaker() {
-  const [state, setState] = useState<ClipPathState>(initialState)
+  const editor = useClipPathEditor()
+  const { state } = editor
+
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'css',
     includeWebkitPrefix: false,
-    units: 'percentage'
+    units: 'percentage',
   })
 
-  const updateState = useCallback((updates: Partial<ClipPathState>) => {
-    setState(prev => ({ ...prev, ...updates }))
-  }, [])
-
-  const addPoint = useCallback((x: number, y: number, insertIndex?: number) => {
-    const newPoint: Point = {
-      id: generateId(),
-      x,
-      y,
-      type: 'flat' // All new points start as flat curves
-    }
-
-    setState(prev => {
-      const points = [...prev.points]
-      if (insertIndex !== undefined) {
-        // Insert at specific position
-        points.splice(insertIndex, 0, newPoint)
-      } else {
-        // Add to end (fallback)
-        points.push(newPoint)
-      }
-
-      return {
-        ...prev,
-        points
-      }
-    })
-  }, [])
-
-  const updatePoint = useCallback((id: string, updates: Partial<Point>) => {
-    setState(prev => ({
-      ...prev,
-      points: prev.points.map(point =>
-        point.id === id ? { ...point, ...updates } : point
-      )
-    }))
-  }, [])
-
-  const deletePoint = useCallback((id: string) => {
-    setState(prev => ({
-      ...prev,
-      points: prev.points.filter(point => point.id !== id),
-      selectedPointId: prev.selectedPointId === id ? undefined : prev.selectedPointId
-    }))
-  }, [])
-
-  const selectPoint = useCallback((id?: string) => {
-    setState(prev => ({ ...prev, selectedPointId: id }))
-  }, [])
-
-  const resetCanvas = useCallback(() => {
-    setState(initialState)
-  }, [])
-
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Clip Path Maker</h1>
-          <p className="text-muted-foreground mt-2">
-            Create custom CSS clip-path shapes with an interactive visual editor
-          </p>
-        </div>
+    <div className="relative min-h-screen bg-background">
+      {/* Blueprint dot-grid backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(var(--grid-dot)_1px,transparent_1px)] [background-size:22px_22px] opacity-60"
+      />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Panel - Tools and Settings */}
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <header className="mb-8 flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Shapes className="size-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Clip&nbsp;Path Maker
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Draw a shape, get production-ready CSS <code>clip-path</code>.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 font-mono text-xs text-primary">
+            <span className="size-1.5 rounded-full bg-primary" />
+            {state.points.length} points
+          </span>
+        </header>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+          {/* Left column — tools, settings, point editing */}
           <div className="space-y-4">
             <Card>
               <CardHeader>
@@ -108,8 +61,8 @@ export function ClipPathMaker() {
               <CardContent>
                 <Toolbar
                   currentTool={state.tool}
-                  onToolChange={(tool) => updateState({ tool })}
-                  onReset={resetCanvas}
+                  onToolChange={(tool) => editor.updateState({ tool })}
+                  onReset={editor.reset}
                 />
               </CardContent>
             </Card>
@@ -123,9 +76,11 @@ export function ClipPathMaker() {
                   showGrid={state.showGrid}
                   snapToGrid={state.snapToGrid}
                   gridSize={state.gridSize}
-                  onShowGridChange={(showGrid) => updateState({ showGrid })}
-                  onSnapToGridChange={(snapToGrid) => updateState({ snapToGrid })}
-                  onGridSizeChange={(gridSize) => updateState({ gridSize })}
+                  onShowGridChange={(showGrid) => editor.updateState({ showGrid })}
+                  onSnapToGridChange={(snapToGrid) =>
+                    editor.updateState({ snapToGrid })
+                  }
+                  onGridSizeChange={(gridSize) => editor.updateState({ gridSize })}
                 />
               </CardContent>
             </Card>
@@ -136,15 +91,15 @@ export function ClipPathMaker() {
               </CardHeader>
               <CardContent>
                 <PointProperties
-                  selectedPoint={state.points.find(p => p.id === state.selectedPointId)}
-                  onUpdatePoint={updatePoint}
-                  onDeletePoint={deletePoint}
+                  selectedPoint={editor.selectedPoint}
+                  onUpdatePoint={editor.updatePoint}
+                  onDeletePoint={editor.deletePoint}
                 />
               </CardContent>
             </Card>
           </div>
 
-          {/* Center - Canvas */}
+          {/* Center — canvas */}
           <div className="lg:col-span-2">
             <Card className="h-fit">
               <CardHeader>
@@ -159,30 +114,25 @@ export function ClipPathMaker() {
                   snapToGrid={state.snapToGrid}
                   gridSize={state.gridSize}
                   canvasSize={state.canvasSize}
-                  onAddPoint={addPoint}
-                  onUpdatePoint={updatePoint}
-                  onDeletePoint={deletePoint}
-                  onSelectPoint={selectPoint}
+                  onAddPoint={editor.addPoint}
+                  onUpdatePoint={editor.updatePoint}
+                  onDeletePoint={editor.deletePoint}
+                  onSelectPoint={editor.selectPoint}
                 />
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Panel - Preview and Output */}
+          {/* Right column — preview and generated code */}
           <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <PreviewArea
-                  points={state.points}
-                  exportOptions={exportOptions}
-                />
+                <PreviewArea points={state.points} exportOptions={exportOptions} />
               </CardContent>
             </Card>
-
-            <Separator />
 
             <Card>
               <CardHeader>
@@ -198,6 +148,10 @@ export function ClipPathMaker() {
             </Card>
           </div>
         </div>
+
+        <footer className="mt-10 border-t pt-6 text-center text-xs text-muted-foreground">
+          Built with Next.js, TypeScript &amp; Tailwind CSS.
+        </footer>
       </div>
     </div>
   )
