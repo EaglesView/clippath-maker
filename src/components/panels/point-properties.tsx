@@ -1,6 +1,6 @@
 'use client'
 
-import { Point } from '@/types/clip-path'
+import { Point, PointType } from '@/types/clip-path'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -9,13 +9,13 @@ import { Square, Circle, Triangle } from 'lucide-react'
 
 interface PointPropertiesProps {
   selectedPoint?: Point
-  onUpdatePoint: (id: string, updates: Partial<Point>) => void
+  onChangeType: (id: string, type: PointType) => void
   onDeletePoint: (id: string) => void
 }
 
 export function PointProperties({
   selectedPoint,
-  onUpdatePoint,
+  onChangeType,
   onDeletePoint
 }: PointPropertiesProps) {
   if (!selectedPoint) {
@@ -26,75 +26,8 @@ export function PointProperties({
     )
   }
 
-  const handleTypeChange = (newType: 'flat' | 'smooth' | 'asymmetric') => {
-    let updates: Partial<Point> = { type: newType }
-
-    if (newType === 'smooth' || newType === 'asymmetric') {
-      // Add default control points if switching to a curved type
-      const hasLegacyControls = selectedPoint.controlPoint1 || selectedPoint.controlPoint2
-      const hasNewControls = selectedPoint.handleIn || selectedPoint.handleOut
-
-      if (!hasLegacyControls && !hasNewControls) {
-        const offset = 12 // Increased default control point offset for better visibility
-
-        if (newType === 'smooth') {
-          // Smooth: mirrored handles (symmetric)
-          updates = {
-            ...updates,
-            handleIn: {
-              x: Math.max(0, Math.min(100, selectedPoint.x - offset)),
-              y: selectedPoint.y
-            },
-            handleOut: {
-              x: Math.max(0, Math.min(100, selectedPoint.x + offset)),
-              y: selectedPoint.y
-            },
-            // Legacy support
-            controlPoint1: {
-              x: Math.max(0, Math.min(100, selectedPoint.x - offset)),
-              y: selectedPoint.y
-            },
-            controlPoint2: {
-              x: Math.max(0, Math.min(100, selectedPoint.x + offset)),
-              y: selectedPoint.y
-            }
-          }
-        } else {
-          // Asymmetric: independent handles with different positions
-          updates = {
-            ...updates,
-            handleIn: {
-              x: Math.max(0, Math.min(100, selectedPoint.x - offset * 0.7)),
-              y: Math.max(0, Math.min(100, selectedPoint.y - offset * 0.5))
-            },
-            handleOut: {
-              x: Math.max(0, Math.min(100, selectedPoint.x + offset * 0.7)),
-              y: Math.max(0, Math.min(100, selectedPoint.y + offset * 0.5))
-            },
-            // Legacy support
-            controlPoint1: {
-              x: Math.max(0, Math.min(100, selectedPoint.x - offset * 0.7)),
-              y: Math.max(0, Math.min(100, selectedPoint.y - offset * 0.5))
-            },
-            controlPoint2: {
-              x: Math.max(0, Math.min(100, selectedPoint.x + offset * 0.7)),
-              y: Math.max(0, Math.min(100, selectedPoint.y + offset * 0.5))
-            }
-          }
-        }
-      }
-    } else {
-      // Remove all control points for flat type
-      updates = {
-        ...updates,
-        handleIn: undefined,
-        handleOut: undefined,
-        controlPoint1: undefined,
-        controlPoint2: undefined
-      }
-    }
-
-    onUpdatePoint(selectedPoint.id, updates)
+  const handleTypeChange = (newType: PointType) => {
+    onChangeType(selectedPoint.id, newType)
   }
 
   const getTypeIcon = (type: string) => {
@@ -129,7 +62,7 @@ export function PointProperties({
         <Label className="text-sm font-medium">Point Type</Label>
         <Select
           value={selectedPoint.type}
-          onValueChange={(value) => handleTypeChange(value as any)}
+          onValueChange={(value) => handleTypeChange(value as PointType)}
         >
           <SelectTrigger className="w-full">
             <SelectValue>

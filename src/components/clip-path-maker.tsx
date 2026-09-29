@@ -18,6 +18,7 @@ import { SettingsPanel } from '@/components/panels/settings-panel'
 import { PointProperties } from '@/components/panels/point-properties'
 import { PreviewArea } from '@/components/panels/preview-area'
 import { CodeOutput } from '@/components/panels/code-output'
+import { EditorToolbar } from '@/components/panels/editor-toolbar'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Shapes, SlidersHorizontal, Code2 } from 'lucide-react'
 
@@ -65,7 +66,7 @@ function ControlsPanels({ editor }: { editor: Editor }) {
       <Panel title="Point Properties">
         <PointProperties
           selectedPoint={editor.selectedPoint}
-          onUpdatePoint={editor.updatePoint}
+          onChangeType={editor.setPointType}
           onDeletePoint={editor.deletePoint}
         />
       </Panel>
@@ -154,6 +155,17 @@ export function ClipPathMaker() {
             aria-hidden
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--grid-dot)_1px,transparent_1px)] [background-size:22px_22px]"
           />
+
+          {/* Floating top toolbar */}
+          <div className="absolute inset-x-0 top-3 z-10 flex justify-center px-4">
+            <EditorToolbar
+              tool={state.tool}
+              onToolChange={(tool) => editor.updateState({ tool })}
+              selectedPoint={editor.selectedPoint}
+              onChangeType={editor.setPointType}
+            />
+          </div>
+
           <div
             className="absolute inset-0 grid place-items-center p-4 sm:p-6 lg:p-8"
             style={{ containerType: 'size' }}

@@ -1,8 +1,10 @@
+export type PointType = 'flat' | 'smooth' | 'asymmetric'
+
 export interface Point {
   id: string
   x: number // 0-100 percentage
   y: number // 0-100 percentage
-  type: 'flat' | 'smooth' | 'asymmetric'
+  type: PointType
   // Incoming control point (affects curve TO this point)
   handleIn?: ControlPoint
   // Outgoing control point (affects curve FROM this point)

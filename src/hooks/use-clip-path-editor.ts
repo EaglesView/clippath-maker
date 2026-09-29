@@ -1,8 +1,48 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { ClipPathState, Point } from '@/types/clip-path'
+import { ClipPathState, Point, PointType } from '@/types/clip-path'
 import { generateId } from '@/lib/canvas-utils'
+
+const clamp = (value: number) => Math.max(0, Math.min(100, value))
+
+/**
+ * Builds the point updates for a type change, seeding sensible default control
+ * handles when switching to a curved type and stripping them when going flat.
+ */
+function typeChangeUpdates(point: Point, type: PointType): Partial<Point> {
+  if (type === 'flat') {
+    return {
+      type,
+      handleIn: undefined,
+      handleOut: undefined,
+      controlPoint1: undefined,
+      controlPoint2: undefined,
+    }
+  }
+
+  const hasHandles =
+    point.handleIn || point.handleOut || point.controlPoint1 || point.controlPoint2
+  if (hasHandles) return { type }
+
+  const offset = 12
+  // Smooth handles are mirrored and horizontal; asymmetric ones are offset.
+  const [dxIn, dyIn, dxOut, dyOut] =
+    type === 'smooth'
+      ? [-offset, 0, offset, 0]
+      : [-offset * 0.7, -offset * 0.5, offset * 0.7, offset * 0.5]
+
+  const handleIn = { x: clamp(point.x + dxIn), y: clamp(point.y + dyIn) }
+  const handleOut = { x: clamp(point.x + dxOut), y: clamp(point.y + dyOut) }
+
+  return {
+    type,
+    handleIn,
+    handleOut,
+    controlPoint1: handleIn,
+    controlPoint2: handleOut,
+  }
+}
 
 const DEFAULT_STATE: ClipPathState = {
   points: [
@@ -66,6 +106,15 @@ export function useClipPathEditor(initialState: ClipPathState = DEFAULT_STATE) {
     setState((prev) => ({ ...prev, selectedPointId: id }))
   }, [])
 
+  const setPointType = useCallback((id: string, type: PointType) => {
+    setState((prev) => ({
+      ...prev,
+      points: prev.points.map((point) =>
+        point.id === id ? { ...point, ...typeChangeUpdates(point, type) } : point
+      ),
+    }))
+  }, [])
+
   const reset = useCallback(() => setState(initialState), [initialState])
 
   const selectedPoint = useMemo(
@@ -81,6 +130,7 @@ export function useClipPathEditor(initialState: ClipPathState = DEFAULT_STATE) {
     updatePoint,
     deletePoint,
     selectPoint,
+    setPointType,
     reset,
   }
 }
